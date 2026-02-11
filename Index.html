@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¿Hacemos algo el sábado?</title>
+    
+    <!-- FUENTES: Playfair (Títulos), Poppins (Texto), Dancing Script (Manuscrito) -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;600&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+    
+    <!-- LIBRERÍA DE CONFETI -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        /* =========================================
+           VARIABLES Y ESTILOS BASE
+           ========================================= */
+        :root {
+            --color-fondo: #fff0f5;
+            --color-principal: #ff8fa3;
+            --color-acento: #ff4d6d;
+            --color-texto: #5a5a5a;
+            --sombra-premium: 0 20px 40px rgba(255, 143, 163, 0.25);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: radial-gradient(circle at center, #fffbfd 0%, #ffe6eb 100%);
+            color: var(--color-texto);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Importante para el botón que huye */
+            margin: 0;
+        }
+
+        /* CURSOR DE CORAZÓN PARA LAPTOP */
+        body.cursor-corazon {
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' style='fill:%23ff4d6d;'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>") 16 16, auto;
+        }
+
+        /* =========================================
+           FONDO ANIMADO
+           ========================================= */
+        #fondo-animado {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .falling-item {
+            position: absolute;
+            top: -50px;
+            animation: caer linear forwards;
+            opacity: 0.8;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1));
+        }
+
+        @keyframes caer {
+            to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* =========================================
+           PANTALLA DE SELECCIÓN (NUEVA VERSIÓN ANIMADA)
+           ========================================= */
+        #pantalla-seleccion {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            transition: opacity 0.5s ease;
+        }
+
+        .contenido-seleccion {
+            text-align: center;
+            animation: entradaSuave 1s ease-out;
+        }
+
+        @keyframes entradaSuave {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .titulo-hola {
+            font-family: 'Playfair Display'; 
+            color: var(--color-acento); 
+            font-size: 3.5rem; 
+            margin-bottom: 0.5rem;
+            animation: latidoSuave 3s infinite;
+            display: inline-block;
+        }
+
+        @keyframes latidoSuave {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .subtitulo-seleccion {
+            font-size: 1.3rem; 
+            color: #777; 
+            font-family: 'Poppins'; 
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .opciones-dispositivo {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-seleccion {
+            background: white;
+            border: 2px solid transparent;
+            padding: 20px 30px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            min-width: 150px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-seleccion span {
+            font-size: 3rem;
+            display: block;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn-seleccion p {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+            color: #555;
+        }
+
+        /* Estilos específicos */
+        .btn-movil { border-color: #a8e6cf; }
+        .btn-laptop { border-color: #ff8fa3; }
+
+        /* Efectos Hover */
+        .btn-seleccion:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .btn-movil:hover { background-color: #f0fff9; }
+        .btn-laptop:hover { background-color: #fff0f3; }
+
+        .btn-seleccion:hover span {
+            transform: scale(1.2) rotate(10deg);
+        }
+
+        /* =========================================
+           TARJETA PRINCIPAL
+           ========================================= */
+        .tarjeta {
+            background: rgba(255, 255, 255, 0.95);
+            width: 90%;
+            max-width: 450px;
+            padding: 2.5rem;
+            border-radius: 25px;
+            box-shadow: var(--sombra-premium);
+            text-align: center;
+            z-index: 10;
+            position: relative;
+            display: none;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: flotarEntrada 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes flotarEntrada {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            color: var(--color-acento);
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 0px rgba(255,200,210,0.5);
+        }
+
+        /* ESTILO POLAROID */
+        .marco-polaroid {
+            background: white;
+            padding: 12px 12px 50px 12px; /* Espacio abajo para parecer polaroid */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            transform: rotate(-2deg); /* Un toque desenfadado */
+            transition: transform 0.3s ease;
+            margin: 1.5rem auto;
+            width: fit-content;
+            position: relative;
+        }
+
+        .marco-polaroid:hover {
+            transform: rotate(0deg) scale(1.02);
+        }
+
+        /* CINTA ADHESIVA VIRTUAL */
+        .cinta {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.4);
+            border-left: 2px dashed rgba(0,0,0,0.1);
+            border-right: 2px dashed rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .img-container {
+            width: 100%;
+            max-width: 320px;
+            height: 280px;
+            overflow: hidden;
+            background: #eee;
+        }
+
+        #imagen-central {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.4s ease;
+        }
+
+        /* TEXTO MANUSCRITO EN LA POLAROID */
+        .caption-polaroid {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.5rem;
+            color: #555;
+            text-align: center;
+        }
+
+        /* =========================================
+           BOTONES
+           ========================================= */
+        .contenedo-botones {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 1.5rem;
+            position: relative;
+        }
+
+        .btn {
+            padding: 14px 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            letter-spacing: 0.5px;
+        }
+
+        #btn-si {
+            background: linear-gradient(45deg, #ff8fa3, #ff4d6d);
+            color: white;
+            box-shadow: 0 5px 15px rgba(255, 77, 109, 0.4);
+            animation: latido 2s infinite; /* Animación de latido */
+        }
+
+        @keyframes latido {
+            0% { transform: scale(1); }
+            5% { transform: scale(1.05); }
+            10% { transform: scale(1); }
+            15% { transform: scale(1.05); }
+            50% { transform: scale(1); }
+            100% { transform: scale(1); }
+        }
+
+        #btn-si:hover {
+            transform: scale(1.1) !important;
+            box-shadow: 0 8px 20px rgba(255, 77, 109, 0.6);
+        }
+
+        #btn-no {
+            background-color: #f0f0f0;
+            color: #777;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.05);
+        }
+
+        /* =========================================
+           MENSAJE FINAL (Typewriter)
+           ========================================= */
+        #mensaje-final {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        #texto-maquina {
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.8rem;
+            color: var(--color-acento);
+            line-height: 1.4;
+            min-height: 60px;
+        }
+
+        .mapa-link {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: rgb(0, 0, 0);
+            background: var(--color-verde);
+            padding: 12px 25px;
+            border-radius: 15px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(168, 230, 207, 0.5);
+            transition: transform 0.2s;
+            opacity: 0; /* Se anima en JS */
+            animation: subirFade 0.8s 2s forwards; /* Aparece después del texto */
+        }
+
+        @keyframes subirFade {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 480px) {
+            .tarjeta { padding: 1.5rem; width: 92%; }
+            h1 { font-size: 1.8rem; }
+            .img-container { height: 220px; }
+            .titulo-hola { font-size: 2.5rem; }
+            .subtitulo-seleccion { font-size: 1.1rem; }
+            .btn-seleccion { min-width: 120px; padding: 15px; }
+            .btn-seleccion span { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="fondo-animado"></div>
+
+    <!-- PANTALLA DE SELECCIÓN MEJORADA -->
+    <div id="pantalla-seleccion">
+        <div class="contenido-seleccion">
+            <h2 class="titulo-hola">Hola... ❤️</h2>
+            <p class="subtitulo-seleccion">Para darte la mejor experiencia,<br>¿desde dónde me lees?</p>
+            
+            <div class="opciones-dispositivo">
+                <button class="btn-seleccion btn-movil" onclick="seleccionarDispositivo('movil')">
+                    <span>📱</span>
+                    <p>Celular</p>
+                </button>
+                <button class="btn-seleccion btn-laptop" onclick="seleccionarDispositivo('laptop')">
+                    <span>💻</span>
+                    <p>Laptop</p>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TARJETA PRINCIPAL -->
+    <div class="tarjeta" id="tarjeta-principal">
+        <h1 id="titulo">¿Hacemos algo este sábado? ✨</h1>
+
+        <!-- ESTILO POLAROID -->
+        <div class="marco-polaroid">
+            <div class="cinta"></div> <!-- Washi tape decorativo -->
+            <div class="img-container">
+                <!-- INSTRUCCIÓN: Cambia esta imagen inicial -->
+                <img id="imagen-central" src="https://i.pinimg.com/736x/b2/02/ac/b202acc16695fb1d48434d1b053aa8f3.jpg" alt="Nosotros">
+            </div>
+            <div class="caption-polaroid" id="texto-foto">Tú y yo...</div>
+        </div>
+
+        <div class="contenedo-botones" id="caja-botones">
+            <button id="btn-si" class="btn">SÍ, QUIERO 💕</button>
+            <button id="btn-no" class="btn">No...</button>
+        </div>
+
+        <div id="mensaje-final">
+            <div id="texto-maquina"></div> <!-- Aquí se escribirá el texto automáticamente -->
+            
+            <!-- INSTRUCCIÓN: Cambia el enlace del mapa aquí -->
+            <a href="https://maps.app.goo.gl/Ffd2Euxy4dLTEvu49" target="_blank" class="mapa-link">
+                📍 Ver Ubicación en Mapa
+            </a>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================
+           CONFIGURACIÓN (PERSONALIZA AQUÍ)
+           ========================================= */
+        const MUSICA = {
+            fondo: "",       // URL música de fondo suave
+            si_laptop: "",   // URL celebración Laptop
+            si_movil: "",    // URL celebración Celular
+            no_sonido: ""    // URL sonido gracioso/triste (solo móvil)
+        };
+
+        const IMAGENES = {
+            exito: "https://i.pinimg.com/736x/bc/b0/b7/bcb0b7cd947f3f71b716d2b1f80555fa.jpg", // Foto final feliz
+            rechazo: [ // Fotos tristes/graciosas
+                "https://i.pinimg.com/736x/2a/2a/1f/2a2a1fc076f1830788dff8f6c72acf33.jpg",
+                "https://i.pinimg.com/736x/95/ea/c7/95eac7c3d7079344d8d3fe3434eeceb0.jpg",
+                "https://i.pinimg.com/736x/52/05/67/520567c04b0befe2b19f247021405e7b.jpg"
+            ]
+        };
+
+        const MENSAJE_FINAL = "¡Sabía que dirías que sí! ❤️ Te espero en la Cafetería Chukulati a las 7 PM. ¡Ponte guapa! (más de lo normal)";
+
+        /* =========================================
+           LÓGICA DEL SISTEMA
+           ========================================= */
+        let modoLaptop = false;
+        let contadorRechazos = 0;
+        let escalaBotonSi = 1;
+        let intervaloFondo;
+
+        // Audios
+        const audioFondo = new Audio(MUSICA.fondo); audioFondo.loop = true; audioFondo.volume = 0.4;
+        const audioSiLaptop = new Audio(MUSICA.si_laptop);
+        const audioSiMovil = new Audio(MUSICA.si_movil);
+        const audioNo = new Audio(MUSICA.no_sonido);
+
+        // Elementos DOM
+        const elems = {
+            pantalla: document.getElementById('pantalla-seleccion'),
+            tarjeta: document.getElementById('tarjeta-principal'),
+            btnSi: document.getElementById('btn-si'),
+            btnNo: document.getElementById('btn-no'),
+            img: document.getElementById('imagen-central'),
+            botones: document.getElementById('caja-botones'),
+            mensaje: document.getElementById('mensaje-final'),
+            txtMaquina: document.getElementById('texto-maquina'),
+            fondo: document.getElementById('fondo-animado'),
+            titulo: document.getElementById('titulo'),
+            caption: document.getElementById('texto-foto')
+        };
+
+        function seleccionarDispositivo(tipo) {
+            elems.pantalla.style.opacity = '0';
+            setTimeout(() => {
+                elems.pantalla.style.display = 'none';
+                elems.tarjeta.style.display = 'block';
+                iniciarFondo('nature');
+                if(MUSICA.fondo) audioFondo.play().catch(e => console.log("Audio autoplay bloqueado"));
+            }, 500);
+
+            if (tipo === 'laptop') {
+                modoLaptop = true;
+                document.body.classList.add('cursor-corazon'); // Activa cursor personalizado
+                elems.btnNo.addEventListener('mouseover', moverBotonImposible);
+            }
+        }
+
+        /* --- Lógica "NO" (Móvil: Insistencia / Laptop: Huida) --- */
+        elems.btnNo.addEventListener('click', (e) => {
+            if (modoLaptop) {
+                e.preventDefault();
+                moverBotonImposible();
+                return;
+            }
+
+            if(MUSICA.no_sonido) { audioNo.currentTime = 0; audioNo.play(); }
+
+            contadorRechazos++;
+            const imgIndex = (contadorRechazos - 1) % IMAGENES.rechazo.length;
+            
+            // Animación cambio imagen
+            elems.img.style.opacity = 0;
+            setTimeout(() => {
+                elems.img.src = IMAGENES.rechazo[imgIndex];
+                elems.img.style.opacity = 1;
+                elems.caption.innerText = ["¿En serio?", "Me rompes el 💔", "Piénsalo..."][imgIndex % 3];
+            }, 200);
+
+            // Hacer crecer botón SÍ
+            escalaBotonSi += 0.4;
+            elems.btnSi.style.transform = `scale(${escalaBotonSi})`;
+            
+            // Achicar botón NO
+            const escalaNo = Math.max(0, 1 - (contadorRechazos * 0.2));
+            elems.btnNo.style.transform = `scale(${escalaNo})`;
+            
+            if(contadorRechazos > 4) {
+                elems.btnNo.style.display = 'none';
+                elems.titulo.innerText = "¡Solo hay una opción! 😈";
+            }
+        });
+
+        function moverBotonImposible() {
+            const width = window.innerWidth - 100;
+            const height = window.innerHeight - 50;
+            const newX = Math.random() * width;
+            const newY = Math.random() * height;
+
+            elems.btnNo.style.position = 'fixed';
+            elems.btnNo.style.left = newX + 'px';
+            elems.btnNo.style.top = newY + 'px';
+        }
+
+        /* --- Lógica "SÍ" (Éxito) --- */
+        elems.btnSi.addEventListener('click', () => {
+            audioFondo.pause();
+            audioNo.pause();
+            if (modoLaptop && MUSICA.si_laptop) audioSiLaptop.play();
+            else if (!modoLaptop && MUSICA.si_movil) audioSiMovil.play();
+
+            // Interfaz
+            elems.img.src = IMAGENES.exito;
+            elems.caption.innerText = "¡Nos vemos! ❤️";
+            elems.botones.style.display = 'none';
+            elems.titulo.innerText = "¡Cita Confirmada!";
+            elems.mensaje.style.display = 'block';
+
+            // Efectos
+            lanzarConfeti();
+            clearInterval(intervaloFondo);
+            iniciarFondo('party');
+            
+            // Escribir mensaje letra por letra
+            escribirTexto(MENSAJE_FINAL, elems.txtMaquina);
+        });
+
+        /* --- Efecto Máquina de Escribir --- */
+        function escribirTexto(texto, elemento) {
+            let i = 0;
+            elemento.innerHTML = "";
+            function type() {
+                if (i < texto.length) {
+                    elemento.innerHTML += texto.charAt(i);
+                    i++;
+                    setTimeout(type, 50); // Velocidad de escritura
+                }
+            }
+            type();
+        }
+
+        /* --- Fondo Animado --- */
+        function iniciarFondo(tipo) {
+            const emojis = tipo === 'nature' ? ['🌸', '🍃', '🌷', '✨'] : ['❤️', '💖', '🎉', '🥰'];
+            const contenedor = elems.fondo;
+            
+            intervaloFondo = setInterval(() => {
+                const el = document.createElement('div');
+                el.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+                el.className = 'falling-item';
+                el.style.left = Math.random() * 100 + 'vw';
+                el.style.fontSize = (Math.random() * 20 + 10) + 'px';
+                el.style.animationDuration = (Math.random() * 3 + 4) + 's';
+                contenedor.appendChild(el);
+                setTimeout(() => el.remove(), 7000);
+            }, 300);
+        }
+
+        function lanzarConfeti() {
+            const duration = 3000;
+            const end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#ff8fa3', '#ff4d6d'] });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#ff8fa3', '#a8e6cf'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+    </script>
+</body>
+</html>
